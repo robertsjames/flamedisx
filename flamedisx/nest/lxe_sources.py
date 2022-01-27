@@ -56,7 +56,7 @@ class nestSource(fd.BlockModelSource):
             config.getfloat('NEST', 'dt_max_config')
 
         # detection.py
-        self.g1 = config.getfloat('NEST', 'g1_config')
+        # self.g1 = config.getfloat('NEST', 'g1_config')
         self.min_photons = config.getint('NEST', 'min_photons_config')
         self.elife = config.getint('NEST', 'elife_config')
 
@@ -120,8 +120,9 @@ class nestSource(fd.BlockModelSource):
 
     # detection.py
 
-    def photon_detection_eff(self, z):
-        return self.g1 * tf.ones_like(z)
+    @staticmethod
+    def photon_detection_eff(z, *, g1=0.1170):
+        return g1 * tf.ones_like(z)
 
     def electron_detection_eff(self, drift_time):
         liquid_field_interface = self.gas_field / \
