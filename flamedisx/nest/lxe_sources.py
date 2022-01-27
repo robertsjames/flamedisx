@@ -124,13 +124,13 @@ class nestSource(fd.BlockModelSource):
     def photon_detection_eff(z, *, g1=0.1170):
         return g1 * tf.ones_like(z)
 
-    def electron_detection_eff(self, drift_time):
+    def electron_detection_eff(self, drift_time,elife=800000):
         liquid_field_interface = self.gas_field / \
             (XENON_LIQUID_DIELECTRIC / XENON_GAS_DIELECTRIC)
         extraction_eff = -0.03754 * pow(liquid_field_interface, 2) + \
             0.52660 * liquid_field_interface - 0.84645
 
-        return extraction_eff * tf.exp(-drift_time / self.elife)
+        return extraction_eff * tf.exp(-drift_time / elife)
 
     def s2_photon_detection_eff(self, z):
         return self.g1_gas * tf.ones_like(z)
