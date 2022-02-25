@@ -45,9 +45,9 @@ class nestSource(fd.BlockModelSource):
         #
         self.drift_velocity = fd_nest.calculate_drift_velocity(
             self.drift_field, self.density, self.temperature)
-        self.Wq_keV = fd_nest.calculate_work(self.density)
+        self.Wq_keV = fd_nest.calculate_work(Wq_keV = 0.01347)
 
-        # energy_spectrum.py
+        # energy_spectrum.py 
         self.radius = config.getfloat('NEST', 'radius_config')
         self.z_topDrift = config.getfloat('NEST', 'z_topDrift_config')
         self.z_top = self.z_topDrift - self.drift_velocity * \
