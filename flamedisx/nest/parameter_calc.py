@@ -119,10 +119,13 @@ def calculate_drift_velocity(drift_field, density, temp):
     return speed*1e-4
 
 
+# @export
+# def calculate_work(density):
+#     eDensity = density * N_AVAGADRO * Z_XENON / A_XENON
+#     Wq_eV = (18.7263 - 1.01e-23 * eDensity) * 1.1716263232
+#     Wq_keV = Wq_eV * 1e-3
+#
+#     return Wq_keV
 @export
-def calculate_work(density):
-    eDensity = density * N_AVAGADRO * Z_XENON / A_XENON
-    Wq_eV = (18.7263 - 1.01e-23 * eDensity) * 1.1716263232
-    Wq_keV = Wq_eV * 1e-3
-
+def calculate_work(Wq_keV = 0.01347):
     return Wq_keV
