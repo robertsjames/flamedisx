@@ -56,9 +56,9 @@ class nestSource(fd.BlockModelSource):
             config.getfloat('NEST', 'dt_max_config')
 
         # detection.py
-        self.g1 = config.getfloat('NEST', 'g1_config')
+        # self.g1 = config.getfloat('NEST', 'g1_config')
         self.min_photons = config.getint('NEST', 'min_photons_config')
-        self.elife = config.getint('NEST', 'elife_config')
+        # self.elife = config.getint('NEST', 'elife_config')
 
         # secondary_quanta_generation.py
         self.gas_gap = config.getfloat('NEST', 'gas_gap_config')
@@ -121,16 +121,17 @@ class nestSource(fd.BlockModelSource):
 
     # detection.py
 
-    def photon_detection_eff(self, z):
-        return self.g1 * tf.ones_like(z)
+    @staticmethod
+    def photon_detection_eff(z, *, g1=0.1170):
+        return g1 * tf.ones_like(z)
 
-    def electron_detection_eff(self, drift_time):
+    def electron_detection_eff(self, drift_time, elife=800000):
         liquid_field_interface = self.gas_field / \
             (XENON_LIQUID_DIELECTRIC / XENON_GAS_DIELECTRIC)
         extraction_eff = -0.03754 * pow(liquid_field_interface, 2) + \
             0.52660 * liquid_field_interface - 0.84645
 
-        return extraction_eff * tf.exp(-drift_time / self.elife)
+        return extraction_eff * tf.exp(-drift_time / elife)
 
     def s2_photon_detection_eff(self, z):
         return self.g1_gas * tf.ones_like(z)
