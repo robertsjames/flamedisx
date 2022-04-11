@@ -443,13 +443,16 @@ class BlockModelSource(fd.Source):
         for b in self.model_blocks:
             b.check_data()
 
-    def _simulate_response(self):
+    def _simulate_response(self, return_failed_events=False):
         # All blocks after the first help to simulate the response
         d = self.data
         d['p_accepted'] = 1.
         for b in self.model_blocks[1:]:
             b.simulate(d)
-        return d.iloc[np.random.rand(len(d)) < d['p_accepted'].values].copy()
+        if return_failed_events:
+            return d.iloc[np.random.rand(len(d)) >= d['p_accepted'].values].copy()
+        else:
+            return d.iloc[np.random.rand(len(d)) < d['p_accepted'].values].copy()
 
     def _annotate(self, _skip_bounds_computation=False):
         d = self.data

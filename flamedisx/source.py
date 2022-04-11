@@ -646,7 +646,7 @@ class Source:
     # Simulation methods and helpers
     ##
 
-    def simulate(self, n_events, fix_truth=None, full_annotate=False, **params):
+    def simulate(self, n_events, fix_truth=None, full_annotate=False, return_failed_events=False, **params):
         """Simulate n events.
 
         Will omit events lost due to selection/detection efficiencies
@@ -665,7 +665,7 @@ class Source:
         with self._set_temporarily(sim_data, _skip_bounds_computation=True,
                                    **params):
             # Do the forward simulation of the detector response
-            d = self._simulate_response()
+            d = self._simulate_response(return_failed_events=return_failed_events)
             if full_annotate:
                 # Now that we have s1 and s2 values, we can populate
                 # columns like e_vis, photon_produced_mle, etc.
@@ -783,7 +783,7 @@ class Source:
         """Draw random "deep truth" variables (energy, position) """
         raise NotImplementedError
 
-    def _simulate_response(self):
+    def _simulate_response(self, return_failed_events=False):
         """Do a forward simulation of the detector response, using self.data"""
         return self.data
 
