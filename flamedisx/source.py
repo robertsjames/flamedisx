@@ -86,6 +86,12 @@ class Source:
     #: The fully annotated event data
     data: pd.DataFrame = None
 
+    proportionality = 1.
+
+    mu_default = None
+    mu_grad_default = None
+    mu_hess_default = None
+
     ##
     # Initialization and helpers
     ##
@@ -754,6 +760,68 @@ class Source:
         d_simulated = self.simulate(n_trials, **params)
         return (self.mu_before_efficiencies(**params)
                 * len(d_simulated) / n_trials)
+
+    def get_proportionality(self, n_simulate=int(1e5)):
+        d_failing = self.simulate(n_simulate, return_failed_events=True)
+        self.set_data(d_failing)
+        diff_rate_fail_sum = tf.reduce_sum(self.batched_differential_rate())
+
+        self.proportionality = (1. - self.estimate_mu() / self.mu_before_efficiencies()) / diff_rate_fail_sum
+
+    def mu_coefficients(self):
+        result = self.dr_grad_hess()
+
+        diff_rate_sum = result[0]
+        grad_sum = result[1]
+        hess_sum = result[2]
+
+        self.mu_default = self.mu_before_efficiencies() * (1. - self.proportionality * diff_rate_sum)
+        self.mu_grad_default = -self.mu_before_efficiencies() * self.proportionality * grad_sum
+        self.mu_hess_default = -self.mu_before_efficiencies() * self.proportionality * hess_sum
+
+    def dr_grad_hess(self):
+        diff_rate_sum = 0.
+        grad_sum = 0.
+        hess_sum = 0.
+
+        for i_batch in range(self.n_batches):
+            q = self.data_tensor[i_batch]
+            result = self.dr_grad_hess_inner(q)
+
+            diff_rate_sum += result[0]
+            grad_sum += result[1]
+            hess_sum += result[2]
+
+        return diff_rate_sum, grad_sum, hess_sum
+
+    @tf.function
+    def dr_grad_hess_inner(self, data_tensor):
+        param_defaults = {'g1': 0.142, 'gamma_er': 0.031}
+        self.param_names = list(param_defaults.keys())
+
+        grad_par_stack = tf.stack([param_defaults[k] for k in self.param_names])
+        params_unstacked = dict(zip([x for x in self.param_names], tf.unstack(grad_par_stack)))
+
+        dr = tf.reduce_sum(self.differential_rate(data_tensor=data_tensor, autograph=False, **params_unstacked))
+        grad = tf.gradients(dr, grad_par_stack)[0]
+        hess = tf.hessians(dr, grad_par_stack)[0]
+
+        return dr, grad, hess
+
+    def get_mu(self, params):
+        param_defaults = {'g1': 0.142, 'gamma_er': 0.031}
+        self.param_names = list(param_defaults.keys())
+
+        params_stacked = tf.stack([params[k] for k in self.param_names])
+        param_defaults_stacked = tf.stack([param_defaults[k] for k in self.param_names])
+
+        d_params = params_stacked - param_defaults_stacked
+
+        term0 = self.mu_default.numpy()
+        term1 = tf.linalg.matmul(d_params[tf.newaxis, :], self.mu_grad_default[:, tf.newaxis])[0, 0].numpy()
+        term2 = 0.5 * tf.linalg.matmul(tf.linalg.matmul(d_params[tf.newaxis, :], self.mu_hess_default), d_params[:, tf.newaxis])[0, 0].numpy()
+
+        return term0 + term1 + term2
 
     ##
     # Functions you have to override
