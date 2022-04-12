@@ -20,6 +20,9 @@ o = tf.newaxis
 
 @export
 class Source:
+    check_acceptances = False
+    check_efficiencies = False
+
     #: Number of event batches to use in differential rate computations
     n_batches = None
 

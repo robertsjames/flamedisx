@@ -81,8 +81,9 @@ class MakeFinalSignals(fd.Block):
         ).prob(s_observed)
 
         # Add detection/selection efficiency
-        result *= self.gimme(SIGNAL_NAMES[self.quanta_name] + '_acceptance',
-                             data_tensor=data_tensor, ptensor=ptensor)[:, o, o]
+        if self.check_acceptances:
+            result *= self.gimme(SIGNAL_NAMES[self.quanta_name] + '_acceptance',
+                                 data_tensor=data_tensor, ptensor=ptensor)[:, o, o]
         return result
 
     def check_data(self):

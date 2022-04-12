@@ -58,7 +58,7 @@ def get_bbf_file(data_file_name):
     Do NOT call on import time --
     that would make flamedisx unusable to non-XENON folks!
     """
-    ensure_repo('XENON1T/bbf.git', BBF_PATH)
+    # ensure_repo('XENON1T/bbf.git', BBF_PATH)
     return fd.get_resource(f'{BBF_PATH}/bbf/data/{data_file_name}')
 
 
@@ -69,7 +69,7 @@ def get_nt_file(data_file_name):
     Do NOT call on import time --
     that would make flamedisx unusable to non-XENON folks!
     """
-    ensure_repo('XENONnT/Flamedisx.git', NTFD_PATH)
+    # ensure_repo('XENONnT/Flamedisx.git', NTFD_PATH)
     return fd.get_resource(f'{NTFD_PATH}/{data_file_name}')
 
 

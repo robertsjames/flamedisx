@@ -46,10 +46,13 @@ class DetectPhotonsOrElectrons(fd.Block):
                 total_count=quanta_produced,
                 probs=tf.cast(p, dtype=fd.float_type())
             ).prob(quanta_detected)
-        acceptance = self.gimme(self.quanta_name + '_acceptance',
-                                bonus_arg=quanta_detected,
-                                data_tensor=data_tensor, ptensor=ptensor)
-        return result * acceptance
+
+        # Add detection/selection efficiency
+        if self.check_efficiencies:
+            result *= self.gimme(self.quanta_name + '_acceptance',
+                                 bonus_arg=quanta_detected,
+                                 data_tensor=data_tensor, ptensor=ptensor)
+        return result
 
     def _simulate(self, d):
         p = self.gimme_numpy(self.quanta_name + '_detection_eff')
