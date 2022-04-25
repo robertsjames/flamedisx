@@ -419,3 +419,127 @@ class nestSpatialRateNRSource(nestNRSource):
 @export
 class nestWIMPSource(nestNRSource):
     model_blocks = (fd_nest.WIMPEnergySpectrum,) + nestNRSource.model_blocks[1:]
+
+
+@export
+class nestGammaSource(nestSource):
+    def __init__(self, *args, energy_min=0., energy_max=10., num_energies=1000, **kwargs):
+        self.energies = tf.cast(tf.linspace(energy_min, energy_max, num_energies),
+                                fd.float_type())
+        self.rates_vs_energy = tf.ones(num_energies, fd.float_type())
+        super().__init__(*args, **kwargs)
+
+    model_blocks = (
+        fd_nest.FixedShapeEnergySpectrumER,
+        fd_nest.MakePhotonsElectronER,
+        fd_nest.DetectPhotons,
+        fd_nest.MakeS1Photoelectrons,
+        fd_nest.DetectS1Photoelectrons,
+        fd_nest.MakeS1,
+        fd_nest.DetectElectrons,
+        fd_nest.MakeS2Photons,
+        fd_nest.DetectS2Photons,
+        fd_nest.MakeS2Photoelectrons,
+        fd_nest.MakeS2)
+
+    # quanta_splitting.py
+
+    def mean_yield_electron(self, energy):
+        Wq_eV = self.Wq_keV * 1e3
+        m3 = 2.
+        m4 = 2.
+        m6 = 0.
+
+        m1 = 33.951 + (3.3284 - 33.951) / (1. + pow(self.drift_field / 165.34, .72665))
+        m2 = 1000 / Wq_eV
+        m5 = 23.156 + (10.737 - 23.156) / (1. + pow(self.drift_field / 34.195, .87459))
+        densCorr = 240720. / pow(self.density, 8.2076)
+        m7 = 66.825 + (829.25 - 66.825) / (1. + pow(self.drift_field / densCorr, .83344))
+
+        m8 = 2.
+
+        Qy = m1 + (m2 - m1) / (1. + pow(energy / m3, m4)) + m5 + (m6 - m5) / (1. + pow(energy / m7, m8))
+
+        nel_temp = Qy * energy
+        # Don't let number of electrons go negative
+        nel = tf.where(nel_temp < 0,
+                       0 * nel_temp,
+                       nel_temp)
+
+        return nel
+
+    def mean_yield_quanta(self, *args):
+        energy = args[0]
+        nel_mean = args[1]
+
+        nq_temp = energy / self.Wq_keV
+
+        nph_temp = nq_temp - nel_mean
+        # Don't let number of photons go negative
+        nph = tf.where(nph_temp < 0,
+                       0 * nph_temp,
+                       nph_temp)
+
+        nq = nel_mean + nph
+
+        return nq
+
+    def fano_factor(self, nq_mean):
+        Fano = 0.12707 - 0.029623 * self.density - 0.0057042 * pow(self.density, 2.) + 0.0015957 * pow(self.density, 3.)
+
+        return Fano + 0.0015 * tf.sqrt(nq_mean) * pow(self.drift_field, 0.5)
+
+    def exciton_ratio(self, energy):
+        alf = 0.067366 + self.density * 0.039693
+
+        return alf * tf.math.erf(0.05 * energy)
+
+    def skewness(self, nq_mean):
+        energy = self.Wq_keV * nq_mean
+
+        alpha0 = tf.cast(1.39, fd.float_type())
+        cc0 = tf.cast(4., fd.float_type())
+        cc1 = tf.cast(22.1, fd.float_type())
+        E0 = tf.cast(7.7, fd.float_type())
+        E1 = tf.cast(54., fd.float_type())
+        E2 = tf.cast(26.7, fd.float_type())
+        E3 = tf.cast(6.4, fd.float_type())
+        F0 = tf.cast(225., fd.float_type())
+        F1 = tf.cast(71., fd.float_type())
+
+        skew = 1. / (1. + tf.exp((energy - E2) / E3)) * \
+            (alpha0 + cc0 * tf.exp(-1. * self.drift_field / F0) * (1. - tf.exp(-1. * energy / E0))) + \
+            1. / (1. + tf.exp(-1. * (energy - E2) / E3)) * cc1 * tf.exp(-1. * energy / E1) * \
+            tf.exp(-1. * tf.sqrt(self.drift_field) / tf.sqrt(F1))
+
+        mask = tf.less(nq_mean, 10000*tf.ones_like(nq_mean))
+        skewness = tf.ones_like(nq_mean, dtype=fd.float_type()) * skew
+        skewness_masked = tf.multiply(skewness, tf.cast(mask, fd.float_type()))
+
+        return skewness_masked
+
+    def variance(self, *args):
+        nel_mean = args[0]
+        nq_mean = args[1]
+        recomb_p = args[2]
+        ni = args[3]
+
+        elec_frac = nel_mean / nq_mean
+        ampl = tf.cast(0.14 + (0.043 - 0.14) / (1. + pow(self.drift_field / 1210., 1.25)), fd.float_type())
+        wide = tf.cast(0.205, fd.float_type())
+        cntr = tf.cast(0.5, fd.float_type())
+        skew = tf.cast(-0.2, fd.float_type())
+        norm = tf.cast(0.988, fd.float_type())
+
+        omega = norm * ampl * tf.exp(-0.5 * pow(elec_frac - cntr, 2.) / (wide * wide)) * \
+            (1. + tf.math.erf(skew * (elec_frac - cntr) / (wide * tf.sqrt(2.))))
+        omega = tf.where(nq_mean == 0,
+                         tf.zeros_like(omega, dtype=fd.float_type()),
+                         omega)
+
+        return recomb_p * (1. - recomb_p) * ni + omega * omega * ni * ni
+
+
+@export
+class nestSpatialRateGammaSource(nestGammaSource):
+    model_blocks = (fd_nest.SpatialRateEnergySpectrum,) + nestGammaSource.model_blocks[1:]
