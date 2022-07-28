@@ -761,7 +761,7 @@ class Source:
         return (self.mu_before_efficiencies(**params)
                 * len(d_simulated) / n_trials)
 
-    def get_proportionality(self, n_simulate=int(1e5)):
+    def get_proportionality(self, n_simulate=int(1e3)):
         d_failing = self.simulate(n_simulate, return_failed_events=True)
         self.set_data(d_failing)
         diff_rate_fail_sum = tf.reduce_sum(self.batched_differential_rate())

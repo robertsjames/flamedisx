@@ -20,14 +20,14 @@ class EnergySpectrum(fd.FirstBlock):
 
     #: Maximum radius at which events are allowed in cm
     #: Fiducial volume defaults to  full (2t) XENON1T dimensions.
-    fv_radius = 47.9   # cm
+    fv_radius = 0.   # cm
 
     #: Maximum z value (-depth) at which events are allowed in cm
-    fv_high = 0.  # cm
+    fv_high = -48.8  # cm
 
     #: Minimum z value (-depth) at which events are allowed in cm
     #: Fiducial volume defaults to  full (2t) XENON1T dimensions.
-    fv_low = -97.6  # cm
+    fv_low = -48.8 # cm
 
     #: Electron drift velocity in cm/ns
     drift_velocity = 1.335 * 1e-4
@@ -58,7 +58,7 @@ class EnergySpectrum(fd.FirstBlock):
         """
         data = dict()
         data['r'] = (np.random.rand(n_events) * self.fv_radius**2)**0.5
-        data['theta'] = np.random.uniform(0, 2*np.pi, size=n_events)
+        data['theta'] = np.random.uniform(0, 0, size=n_events)
         data['z'] = np.random.uniform(self.fv_low, self.fv_high,
                                       size=n_events)
         data['x'], data['y'] = fd.pol_to_cart(data['r'], data['theta'])

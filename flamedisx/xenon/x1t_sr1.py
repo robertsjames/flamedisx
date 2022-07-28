@@ -113,8 +113,8 @@ def calculate_reconstruction_efficiency(sig, fmap, domain_def, pivot_pt):
         lambda: interpolate_tf(sig_tf, fmap[2], domain_def) - bias_median)
     return bias_median + pivot_pt * bias_diff
 
-## 
-# Utility for the spatial template construction 
+##
+# Utility for the spatial template construction
 ##
 def construct_exponential_r_spatial_hist(n = 2e6, max_r = 42.8387,
                                          exp_const=1.36 ):
@@ -122,7 +122,7 @@ def construct_exponential_r_spatial_hist(n = 2e6, max_r = 42.8387,
   :param n: number of samples in the template
   :param max_r: maximum radius for the exponential r template
   :param exp_const: exponential constant for the exponential function in r
-  :return: multihist.Histdd 3D normalised histogram in the format needed 
+  :return: multihist.Histdd 3D normalised histogram in the format needed
            for the spatial_hist method of fd.SpatialRateERSource
   """
   assert max_r < 50, "max_r should be < 50cm."
@@ -141,7 +141,7 @@ def construct_exponential_r_spatial_hist(n = 2e6, max_r = 42.8387,
                 (zr < -158.173 + 0.0456094 * rr * rr)):
       rr = max_r - stats.expon.rvs(loc = 0, scale = exp_const, size = 1)
       zr = np.random.uniform(-94., -8.)
-    r[i] = rr 
+    r[i] = rr
     z[i] = zr
   hist, edges = np.histogramdd([r,theta_arr,z],bins=(r_edges, theta_edges,
                                                  z_edges))
@@ -250,10 +250,8 @@ class SR1Source:
 
         # Add extra needed columns
         # TODO: Add FDC maps instead of posrec resolution
-        d['x_observed'] = np.random.normal(d['x'].values,
-                                           scale=2)  # 2cm resolution)
-        d['y_observed'] = np.random.normal(d['y'].values,
-                                           scale=2)  # 2cm resolution)
+        d['x_observed'] = d['x'].values
+        d['y_observed'] = d['y'].values
         return d
 
     def add_extra_columns(self, d):
@@ -288,7 +286,7 @@ class SR1Source:
                 d['s2']
                 / d['s2_relative_ly']
                 * np.exp(d['drift_time'] / d['elife']))
-    
+
     @staticmethod
     def electron_detection_eff(drift_time,
                                elife,
@@ -354,7 +352,7 @@ class SR1Source:
                       cs2b_min=50.1,
                       cs2b_max=7940.):
         cs2b = cs2*(1-DEFAULT_AREA_FRACTION_TOP)
-        acceptance = tf.where((cs2b > cs2b_min) & (cs2b < cs2b_max) 
+        acceptance = tf.where((cs2b > cs2b_min) & (cs2b < cs2b_max)
                                                 & (s2 > s2_min),
                               tf.ones_like(s2, dtype=fd.float_type()),
                               tf.zeros_like(s2, dtype=fd.float_type()))
@@ -447,21 +445,21 @@ class SR1NRSource(SR1Source, fd.NRSource):
 
 @export
 class SR1WallSource(fd.SpatialRateERSource, SR1ERSource):
-      
-      # Should set FV here 
-      #fv_radius = R 
+
+      # Should set FV here
+      #fv_radius = R
       #fv_high = z_max
       #fv_low = z_min
-      
+
       # Should set the spatial histogram here
       #spatial_hist = normalised_Histdd_wall_spatial_hist
-      
-      # TODO: The parameters here will need to be polished. 
+
+      # TODO: The parameters here will need to be polished.
       # They are fitted parameters and give a reasonable result.
       @staticmethod
-      def p_electron(nq, *, w_er_pel_a = -123. , w_er_pel_b = -47.7, 
+      def p_electron(nq, *, w_er_pel_a = -123. , w_er_pel_b = -47.7,
                     w_er_pel_c = 68., w_er_pel_e0 = 9.95):
-      
+
           """Fraction of ER quanta that become electrons
           Simplified form from Jelle's thesis
           """
@@ -481,9 +479,9 @@ class SR1WallSource(fd.SpatialRateERSource, SR1ERSource):
                                  *,
                                  w_extraction_eff=0.0169):
           return w_extraction_eff * tf.exp(-drift_time / elife)
-          
+
       @staticmethod
-      def p_electron_fluctuation(nq, w_q2 = 0.0237, w_q3_nq = 123.): 
+      def p_electron_fluctuation(nq, w_q2 = 0.0237, w_q3_nq = 123.):
         return tf.clip_by_value(
             w_q2 * (tf.constant(1., dtype=fd.float_type()) - \
             tf.exp(-nq / w_q3_nq)),
